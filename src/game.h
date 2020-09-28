@@ -4,6 +4,7 @@
 #include <random>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 #include "SDL.h"
 #include "controller.h"
 #include "renderer.h"
@@ -43,9 +44,8 @@ class Game {
   void updateScoreHistory();
 
   bool slowSpeed{ false };
-
-  std::condition_variable _condvar;
   std::mutex _mutex;
+  std::condition_variable _condvar;
 };
 
 #endif

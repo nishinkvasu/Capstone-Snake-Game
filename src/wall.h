@@ -15,7 +15,7 @@ class Wall : public Object {
  public:
 	 Wall(int grid_width, int grid_height);
 
-	 bool Wall::ObjCell(int x, int y);   
+	 bool ObjCell(int x, int y);   
 private:
 
 };

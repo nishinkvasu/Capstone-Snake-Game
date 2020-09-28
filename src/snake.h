@@ -19,7 +19,7 @@ class Snake : public Object {
   void restart(); // Used to reset the snake attributes for a restart
   void GrowBody();
 
-  bool Snake::ObjCell(int x, int y);
+  bool ObjCell(int x, int y);
 
   Direction direction = Direction::kUp;
 
