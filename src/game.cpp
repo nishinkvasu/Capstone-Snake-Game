@@ -19,6 +19,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   Uint32 frame_start;
   Uint32 frame_end;
   Uint32 frame_duration;
+  GameState gState;
   int frame_count = 0;
   bool running = true;
   int pauseRequest = 0;
@@ -32,7 +33,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // Input, Update, Render - the main game loop.
     controller.HandleInput(running, snake, pauseRequest, restartRequest); // Feat1
 	if (pauseRequest != 1) {
-		GameState gState = Update(); // feat 2
+		gState = Update(); // feat 2 - tracking the status of the game
 		if(gState == GameState::kActive)
 			renderer.Render(snake, food, wall); // add obstacle here
 		else
@@ -45,15 +46,20 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 			}
 			// if restart request is set, then reset the game
 			if (restartRequest) {
-				restart();
+				restart(); // reset the game parameters
+
+				// locking the update of the boolean variable 
+				// which controls the condition variable which 
+				// in turn controls the lifetime of the slow mode
+				// thread
 				std::unique_lock<std::mutex> ulock(_mutex);
 				slowSpeed = true;
 				_condvar.notify_one();
 				slowSpeed = false;
 				ulock.unlock();
-				bUpdateScore = true;
-				restartRequest = false;
-			
+
+				bUpdateScore = true; // updateScore flag also set to true to record for new game
+				restartRequest = false; // reset the flag to monitor the reset request status
 			}
 		}
 
@@ -68,7 +74,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 
     // After every second, update the window title.
     if (frame_end - title_timestamp >= 1000) {
-      renderer.UpdateWindowTitle(score, frame_count, snake.speed, pauseRequest); // Feat1
+      renderer.UpdateWindowTitle(score, frame_count, snake.speed, pauseRequest, (gState != GameState::kActive)); // Feat1
       frame_count = 0;
       title_timestamp = frame_end;
     }
@@ -80,6 +86,8 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       SDL_Delay(target_frame_duration - frame_duration);
     }
   }
+  // ensuring the slow speed thread comes out of its wait state 
+  // and terminates
   slowSpeed = true;
   _condvar.notify_one();
   timerThread.join();
@@ -93,14 +101,13 @@ void Game::PlaceFood() {
     // Check that the location is not occupied by a snake / wall object before placing
     // food.
     if (!snake.ObjCell(x, y)) {
-		if (!wall.ObjCell(x, y)) {
+		// added check to ensure that food is not where there is a wall or obstacle 
+		if (!wall.ObjCell(x, y)) { 
 			food.x = x;
 			food.y = y;
 			return;
 		}
     }
-
-
   }
 }
 
@@ -134,6 +141,11 @@ GameState Game::Update() {
 int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
 
+/*  Game::restart
+	Added a small state machine to allow continuous play of the game.
+	The restart method is used to reset the variables which contribute to the overall 
+	state of the game
+*/
 void Game::restart() {
 	// reset snake attributes
 	snake.restart();
@@ -144,7 +156,11 @@ void Game::restart() {
 	score = 0;
 
 }
-
+/*
+Game::updateScoreHistory will record in a test file all the score history.
+This can be further developed to show the last scores on the screen.
+Right now it just records the data on a file
+*/
 void Game::updateScoreHistory() {
 	// add score to scoresheet file
 	std::ofstream scoreFile;
@@ -152,6 +168,18 @@ void Game::updateScoreHistory() {
 	scoreFile << " Round " << round++ << " Score  " << GetScore() << "\n";
 	scoreFile.close();
 }
+
+/*
+	Game::timerThreadFunction is a function that will run in a separate thread from the main 
+	it is used to provide a feature where the snake will slow down for 10 seconds 
+	after the score crosses 10.
+
+	The slowSpeed variable is used as the predicate for the condition variable which is notified
+	when the score equals 10. The unique lock is used here to make use of in a condition variable
+	and also to allow to unlock for a period when the thread goes to sleep (for 10 seconds).
+	The lock is then again locked in -order to restore the speed to close to the original value
+
+*/
 
 void Game::timerThreadFunction(bool &running) {
 	std::cout << "Inside Timer thread function \n ";
@@ -164,7 +192,7 @@ void Game::timerThreadFunction(bool &running) {
 			// Idea here is to start a timer when the score passes 10 (signalled through a condition variable)
 			// and before the timer starts we will update the snake speed in a mutex
 			std::cout << "Slow speed - start\n ";
-			snake.speed -= 0.1f;
+			snake.speed -= 0.15f;
 			// and go to sleep for some time
 			uLock.unlock();
 			std::this_thread::sleep_for(std::chrono::seconds(10));
