@@ -75,7 +75,13 @@ void Renderer::Render(Snake const snake, SDL_Point const &food) {
   SDL_RenderPresent(sdl_renderer);
 }
 
-void Renderer::UpdateWindowTitle(int score, int fps) {
+void Renderer::UpdateWindowTitle(int score, int fps, int &PauseReq) {
   std::string title{"Snake Score: " + std::to_string(score) + " FPS: " + std::to_string(fps)};
+
+  if (PauseReq)
+	  title += "   Game Paused. Press p to resume ";
+  else
+	  title += "   Press p to pause ";
+
   SDL_SetWindowTitle(sdl_window, title.c_str());
 }
