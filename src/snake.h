@@ -15,6 +15,7 @@ class Snake {
         head_y(grid_height / 2) {}
 
   void Update();
+  void restart(); // Used to reset the snake attributes for a restart
 
   void GrowBody();
   bool SnakeCell(int x, int y);

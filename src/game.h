@@ -7,6 +7,8 @@
 #include "renderer.h"
 #include "snake.h"
 
+enum class GameState { kActive, kDead };
+
 class Game {
  public:
   Game(std::size_t grid_width, std::size_t grid_height);
@@ -25,9 +27,14 @@ class Game {
   std::uniform_int_distribution<int> random_h;
 
   int score{0};
+  int round{0};
 
   void PlaceFood();
-  void Update();
+  //void Update();
+  GameState Update();
+
+  void restart();
+  void updateScoreHistory();
 };
 
 #endif

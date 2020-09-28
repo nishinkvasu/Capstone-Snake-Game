@@ -77,3 +77,12 @@ bool Snake::SnakeCell(int x, int y) {
   }
   return false;
 }
+
+
+void Snake::restart() {
+	head_x = grid_width / 2;
+	head_y = grid_height / 2;
+
+	body.clear();
+
+}

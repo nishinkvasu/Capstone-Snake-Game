@@ -1,12 +1,13 @@
 #include "game.h"
 #include <iostream>
+#include <fstream>
 #include "SDL.h"
 
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height),
       engine(dev()),
-      random_w(0, static_cast<int>(grid_width)),
-      random_h(0, static_cast<int>(grid_height)) {
+      random_w(0, static_cast<int>(grid_width - 1)), // if equal to width then food on borders wont be seen
+      random_h(0, static_cast<int>(grid_height - 1)) {
   PlaceFood();
 }
 
@@ -19,15 +20,34 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   int frame_count = 0;
   bool running = true;
   int pauseRequest = 0;
+  int restartRequest = 0;
+  bool bUpdateScore = true; // to track the scoresheet to be updated or not
 
   while (running) {
     frame_start = SDL_GetTicks();
 
     // Input, Update, Render - the main game loop.
-    controller.HandleInput(running, snake, pauseRequest); // Feat1
-	if (!pauseRequest) {
-		Update();
-		renderer.Render(snake, food);
+    controller.HandleInput(running, snake, pauseRequest, restartRequest); // Feat1
+	if (pauseRequest != 1) {
+		GameState gState = Update(); // feat 2
+		if(gState == GameState::kActive)
+			renderer.Render(snake, food);
+		else
+		{
+			// dump the scores here
+			// one time dump only
+			if (bUpdateScore) {
+				updateScoreHistory();
+				bUpdateScore = false;
+			}
+			// if user request is 2, then reset the game
+			if (restartRequest) {
+				restart();
+				bUpdateScore = true;
+				restartRequest = 0;
+			}
+		}
+
 	}
     
 
@@ -69,8 +89,8 @@ void Game::PlaceFood() {
   }
 }
 
-void Game::Update() {
-  if (!snake.alive) return;
+GameState Game::Update() {
+  if (!snake.alive) return GameState::kDead;
 
   snake.Update();
 
@@ -85,7 +105,28 @@ void Game::Update() {
     snake.GrowBody();
     snake.speed += 0.02;
   }
+
+  return GameState::kActive;
 }
 
 int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
+
+void Game::restart() {
+	// reset snake attributes
+	snake.restart();
+	// make the snake alive
+	snake.alive = true;
+	// reset the speed and score
+	snake.speed = 0.1f;
+	score = 0;
+
+}
+
+void Game::updateScoreHistory() {
+	// add score to scoresheet file
+	std::ofstream scoreFile;
+	scoreFile.open("Scoresheet.txt", std::ios::app | std::ios::out);
+	scoreFile << " Round " << round++ << " Score  " << GetScore() << "\n";
+	scoreFile.close();
+}

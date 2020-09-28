@@ -9,7 +9,7 @@ void Controller::ChangeDirection(Snake &snake, Snake::Direction input,
   return;
 }
 
-void Controller::HandleInput(bool &running, Snake &snake, int &PauseReq) const {
+void Controller::HandleInput(bool &running, Snake &snake, int &pauseReq, int &restartReq) const {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     if (e.type == SDL_QUIT) {
@@ -36,10 +36,15 @@ void Controller::HandleInput(bool &running, Snake &snake, int &PauseReq) const {
                           Snake::Direction::kLeft);
 		  break;
 
-		case SDLK_p:
-			PauseReq = PauseReq ? 0 : 1;
-          break;
+		case SDLK_p: // to handle pause request
+			pauseReq = pauseReq ? 0 : 1;
+			break;
+
+		case SDLK_r:
+			restartReq = 1;
+			break;
       }
     }
   }
 }
+
