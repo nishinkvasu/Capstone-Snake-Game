@@ -19,7 +19,7 @@ class Game {
   int GetScore() const;
   int GetSize() const;
 
-  void timerThreadFunction();
+  void timerThreadFunction(bool &running);
 
  private:
   Snake snake;
@@ -39,6 +39,8 @@ class Game {
 
   void restart();
   void updateScoreHistory();
+
+  bool slowSpeed{ false };
 
   std::condition_variable _condvar;
   std::mutex _mutex;
