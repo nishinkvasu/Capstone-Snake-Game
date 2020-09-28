@@ -8,6 +8,7 @@
 #include "controller.h"
 #include "renderer.h"
 #include "snake.h"
+#include "wall.h"
 
 enum class GameState { kActive, kDead };
 
@@ -23,6 +24,7 @@ class Game {
 
  private:
   Snake snake;
+  Wall wall;
   SDL_Point food;
 
   std::random_device dev;

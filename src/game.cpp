@@ -6,6 +6,7 @@
 
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height),
+	  wall(grid_width, grid_height),
       engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)), // if equal to width then food on borders wont be seen
       random_h(0, static_cast<int>(grid_height - 1)) {
@@ -33,16 +34,16 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 	if (pauseRequest != 1) {
 		GameState gState = Update(); // feat 2
 		if(gState == GameState::kActive)
-			renderer.Render(snake, food);
+			renderer.Render(snake, food, wall); // add obstacle here
 		else
 		{
 			// dump the scores here
-			// one time dump only
+			// one time dump only per game
 			if (bUpdateScore) {
 				updateScoreHistory();
 				bUpdateScore = false;
 			}
-			// if user request is 2, then reset the game
+			// if restart request is set, then reset the game
 			if (restartRequest) {
 				restart();
 				std::unique_lock<std::mutex> ulock(_mutex);
@@ -79,6 +80,8 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       SDL_Delay(target_frame_duration - frame_duration);
     }
   }
+  slowSpeed = true;
+  _condvar.notify_one();
   timerThread.join();
 }
 
@@ -87,20 +90,24 @@ void Game::PlaceFood() {
   while (true) {
     x = random_w(engine);
     y = random_h(engine);
-    // Check that the location is not occupied by a snake item before placing
+    // Check that the location is not occupied by a snake / wall object before placing
     // food.
-    if (!snake.SnakeCell(x, y)) {
-      food.x = x;
-      food.y = y;
-      return;
+    if (!snake.ObjCell(x, y)) {
+		if (!wall.ObjCell(x, y)) {
+			food.x = x;
+			food.y = y;
+			return;
+		}
     }
+
+
   }
 }
 
 GameState Game::Update() {
   if (!snake.alive) return GameState::kDead;
 
-  snake.Update();
+  snake.Update(wall);
 
   int new_x = static_cast<int>(snake.head_x);
   int new_y = static_cast<int>(snake.head_y);
