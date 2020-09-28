@@ -2,6 +2,8 @@
 #define GAME_H
 
 #include <random>
+#include <thread>
+#include <mutex>
 #include "SDL.h"
 #include "controller.h"
 #include "renderer.h"
@@ -16,6 +18,8 @@ class Game {
            std::size_t target_frame_duration);
   int GetScore() const;
   int GetSize() const;
+
+  void timerThreadFunction();
 
  private:
   Snake snake;
@@ -35,6 +39,9 @@ class Game {
 
   void restart();
   void updateScoreHistory();
+
+  std::condition_variable _condvar;
+  std::mutex _mutex;
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include "game.h"
 #include <iostream>
 #include <fstream>
+
 #include "SDL.h"
 
 Game::Game(std::size_t grid_width, std::size_t grid_height)
@@ -20,9 +21,10 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   int frame_count = 0;
   bool running = true;
   int pauseRequest = 0;
-  int restartRequest = 0;
+  bool restartRequest = false;
   bool bUpdateScore = true; // to track the scoresheet to be updated or not
 
+  std::thread timerThread(&Game::timerThreadFunction, this);
   while (running) {
     frame_start = SDL_GetTicks();
 
@@ -44,14 +46,14 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 			if (restartRequest) {
 				restart();
 				bUpdateScore = true;
-				restartRequest = 0;
+				restartRequest = false;
 			}
 		}
 
 	}
     
 
-    frame_end = SDL_GetTicks();
+	frame_end = SDL_GetTicks();
 
     // Keep track of how long each loop through the input/update/render cycle
     // takes.
@@ -72,6 +74,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       SDL_Delay(target_frame_duration - frame_duration);
     }
   }
+  timerThread.join();
 }
 
 void Game::PlaceFood() {
@@ -99,11 +102,16 @@ GameState Game::Update() {
 
   // Check if there's food over here
   if (food.x == new_x && food.y == new_y) {
-    score++;
     PlaceFood();
     // Grow snake and increase speed.
     snake.GrowBody();
+	// lock here
+	std::lock_guard<std::mutex> lck(_mutex);
+	score++;
     snake.speed += 0.02;
+	if (score > 10)
+		_condvar.notify_one();
+	// unlock
   }
 
   return GameState::kActive;
@@ -129,4 +137,22 @@ void Game::updateScoreHistory() {
 	scoreFile.open("Scoresheet.txt", std::ios::app | std::ios::out);
 	scoreFile << " Round " << round++ << " Score  " << GetScore() << "\n";
 	scoreFile.close();
+}
+
+void Game::timerThreadFunction() {
+	std::cout << "Inside Timer thread function \n ";
+	std::unique_lock<std::mutex> uLock(_mutex);
+	_condvar.wait(uLock);
+	std::cout << "Inside Timer thread function - condvar notified\n ";
+
+	// Idea here is to start a timer when the score passes 10 (signalled through a condition variable)
+	// and before the timer starts we will update the snake speed in a mutex
+	snake.speed -= 0.1f;
+	// and go to sleep for some time
+	uLock.unlock();
+	std::this_thread::sleep_for(std::chrono::seconds(10));
+	// on waking up we will restore the speed
+	std::cout << "Slow speed - condvar notified\n ";
+	uLock.lock();
+	snake.speed += 0.1f;
 }
