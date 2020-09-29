@@ -44,7 +44,7 @@ The yellow blocks are walls/ obstacles, the green one is the food.
   * Classes follow an appropriate inheritance hierarchy.
   * Derived class functions override virtual base class functions.
     *  The game now has an Wall/ Obstacle, which on contact with the snake will cause the game to end. This is achieved through a small level of inheritance.
-    *  The snake class now inherits from an Object class which contains some common members which are also relevant to the wall class.
+    *  The snake class now inherits from an Object class which contains some common members which are also relevant to the wall class. Idea conceptualized from this thread (https://knowledge.udacity.com/questions/284705)
                          
         Wall <---------- Object -------------> Snake
                     
