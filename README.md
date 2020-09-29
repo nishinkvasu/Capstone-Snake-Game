@@ -6,6 +6,8 @@ This is a repo forked from  Udacity for the Capstone project in the [Udacity C++
 
 In this project, I have extended the Snake Game to add some features, so that it incorporates some of the concepts that I have learned during the Nanodegree.
 
+The yellow blocks are walls/ obstacles, the green one is the food.
+
 ## Dependencies for Running Locally
 * cmake >= 3.7
   * All OSes: [click here for installation instructions](https://cmake.org/install/)
